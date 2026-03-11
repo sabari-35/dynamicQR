@@ -1,29 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 260 20% 98%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 210 20% 98%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 270 70% 50%; /* Purple accent */
-    --accent-foreground: 0 0% 98%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 210 20% 98%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 210 20% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.75rem;
+    --ring: 262 83% 58%;
+    --radius: 1rem;
   }
 
   .dark {
@@ -33,19 +35,19 @@
     --card-foreground: 0 0% 98%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 210 20% 98%;
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-    --accent: 270 70% 60%; /* Lighter purple accent in dark mode */
-    --accent-foreground: 0 0% 98%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 210 20% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --ring: 262 83% 58%;
   }
 }
 
@@ -55,14 +57,43 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
   }
 }
 
-/* Glassmorphism helpers */
-.glass {
-  @apply bg-background/60 backdrop-blur-md border border-white/10 shadow-xl;
+@layer utilities {
+  .glass {
+    @apply bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-2xl;
+  }
+  
+  .glass-card {
+    @apply bg-white/70 dark:bg-zinc-900/70 backdrop-blur-lg border border-white/20 dark:border-white/10 shadow-xl rounded-2xl;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-indigo-500;
+  }
+
+  .bg-mesh {
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(262, 83%, 58%, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(270, 70%, 50%, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(262, 83%, 58%, 0.15) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(270, 70%, 50%, 0.1) 0px, transparent 50%);
+  }
 }
 
-.dark .glass {
-  @apply bg-black/40 backdrop-blur-lg border border-white/5;
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
 }
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/40 transition-colors;
+}
+
