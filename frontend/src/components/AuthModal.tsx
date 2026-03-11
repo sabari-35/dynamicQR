@@ -14,9 +14,10 @@ import { Loader2 } from "lucide-react"
 interface AuthModalProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
+  onSuccess?: () => void
 }
 
-export function AuthModal({ isOpen, onOpenChange }: AuthModalProps) {
+export function AuthModal({ isOpen, onOpenChange, onSuccess }: AuthModalProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -30,6 +31,7 @@ export function AuthModal({ isOpen, onOpenChange }: AuthModalProps) {
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN") {
         onOpenChange(false)
+        if (onSuccess) onSuccess()
       }
     })
 

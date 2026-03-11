@@ -1,11 +1,28 @@
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
 import { AuthModal } from "@/components/AuthModal"
-import { useState } from "react"
-import { Link } from "react-router-dom"
+import { useState, useEffect } from "react"
+import { Link, useNavigate } from "react-router-dom"
+import { supabase } from "@/lib/supabase"
 
 export default function LandingPage() {
   const [isAuthOpen, setIsAuthOpen] = useState(false)
+  const navigate = useNavigate()
+  const [session, setSession] = useState<any>(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleStartFree = () => {
+    if (session) {
+      navigate('/create')
+    } else {
+      setIsAuthOpen(true)
+    }
+  }
 
   return (
     <div className="w-full flex-col min-h-[calc(100vh-4rem)] bg-gradient-to-br from-background via-background/90 to-accent/10 flex items-center justify-center p-4">
@@ -37,7 +54,7 @@ export default function LandingPage() {
         >
            <Button 
              size="lg" 
-             onClick={() => setIsAuthOpen(true)}
+             onClick={handleStartFree}
              className="h-14 px-8 text-lg bg-accent text-white hover:bg-accent/90 shadow-[0_0_30px_-5px_var(--accent)] hover:shadow-[0_0_40px_-5px_var(--accent)] transition-all"
            >
              Start Generating Free
@@ -53,7 +70,7 @@ export default function LandingPage() {
       {/* Decorative gradient blur */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/20 blur-[120px] rounded-full point-events-none -z-10" />
       
-      <AuthModal isOpen={isAuthOpen} onOpenChange={setIsAuthOpen} />
+      <AuthModal isOpen={isAuthOpen} onOpenChange={setIsAuthOpen} onSuccess={() => navigate('/create')} />
     </div>
   )
 }
