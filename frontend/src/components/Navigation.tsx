@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-import { Scan, Menu, LayoutDashboard, PlusCircle, LogOut } from "lucide-react"
+import { Scan, LayoutDashboard, PlusCircle, LogOut } from "lucide-react"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import {
