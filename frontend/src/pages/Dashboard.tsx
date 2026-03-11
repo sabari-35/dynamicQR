@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import api from '@/lib/api'
 
+const SHORT_LINK_DOMAIN = import.meta.env.VITE_SHORT_LINK_DOMAIN || 'http://localhost:8000/api/r'
+
 export default function Dashboard() {
   const [stats, setStats] = useState({ total_qrs: 0, total_scans: 0, active_campaigns: 0 })
   const [qrs, setQrs] = useState<any[]>([])
@@ -120,13 +122,13 @@ export default function Dashboard() {
                     <TableCell className="font-medium">{qr.name}</TableCell>
                     <TableCell className="max-w-[200px] truncate">{qr.destination_url}</TableCell>
                     <TableCell>
-                        <a href={`http://localhost:8000/api/r/${qr.short_id}`} target="_blank" rel="noreferrer" className="text-accent flex items-center gap-1 hover:underline">
+                        <a href={`${SHORT_LINK_DOMAIN}/${qr.short_id}`} target="_blank" rel="noreferrer" className="text-accent flex items-center gap-1 hover:underline">
                             /r/{qr.short_id} <ExternalLink className="w-3 h-3" />
                         </a>
                         <div className="hidden">
                            <QRCodeSVG 
                                id={`qr-${qr.short_id}`}
-                               value={`http://localhost:8000/api/r/${qr.short_id}`} 
+                               value={`${SHORT_LINK_DOMAIN}/${qr.short_id}`} 
                                size={1024} 
                                level="H" 
                                includeMargin={true} 

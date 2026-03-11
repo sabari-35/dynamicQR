@@ -9,6 +9,8 @@ import { Loader2, ArrowLeft, Save } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import api from '@/lib/api'
 
+const SHORT_LINK_DOMAIN = import.meta.env.VITE_SHORT_LINK_DOMAIN || 'http://localhost:8000/api/r'
+
 export default function EditQR() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -66,7 +68,7 @@ export default function EditQR() {
     )
   }
 
-  const shortLink = qr ? `http://localhost:8000/api/r/${qr.short_id}` : ''
+  const shortLink = qr ? `${SHORT_LINK_DOMAIN}/${qr.short_id}` : ''
 
   return (
     <div className="container mx-auto p-6 max-w-4xl py-12">
