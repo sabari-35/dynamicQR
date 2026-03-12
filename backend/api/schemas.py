@@ -64,6 +64,8 @@ class QRCodeResponse(QRCodeBase):
     id: uuid.UUID
     short_id: str
     user_id: uuid.UUID
+    scan_count: int = 0
+    last_scanned: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 

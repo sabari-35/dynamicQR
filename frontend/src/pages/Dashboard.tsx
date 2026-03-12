@@ -17,7 +17,8 @@ import {
   Clock,
   ExternalLink,
   ChevronRight,
-  Filter
+  Filter,
+  History
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import {
@@ -46,39 +47,46 @@ export default function Dashboard() {
   
   const containerRef = useRef<HTMLDivElement>(null)
 
+  const formatRelativeTime = (date: string | Date) => {
+    const now = new Date()
+    const diff = now.getTime() - new Date(date).getTime()
+    const seconds = Math.floor(diff / 1000)
+    const minutes = Math.floor(seconds / 60)
+    const hours = Math.floor(minutes / 60)
+    const days = Math.floor(hours / 24)
+
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`
+    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`
+    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`
+    return 'Just now'
+  }
+
   useGSAP(() => {
-    if (!loading) {
-      const tl = gsap.timeline()
+    if (!loading && (qrs.length > 0)) {
+      const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.8 }})
       
       tl.from(".header-section > *", {
         y: 30,
         opacity: 0,
-        duration: 0.8,
         stagger: 0.1,
-        ease: "power3.out"
       })
       .from(".stat-card", {
         y: 40,
         opacity: 0,
-        duration: 0.8,
         stagger: 0.1,
-        ease: "power3.out"
       }, "-=0.4")
       .from(".filter-section", {
         x: -20,
         opacity: 0,
         duration: 0.6,
-        ease: "power2.out"
       }, "-=0.2")
       .from(".qr-card", {
         y: 40,
         opacity: 0,
-        duration: 0.8,
         stagger: 0.05,
-        ease: "power3.out"
       }, "-=0.2")
     }
-  }, [loading, activeFilter])
+  }, [loading, activeFilter, qrs.length])
 
   useEffect(() => {
     fetchData()
@@ -268,7 +276,7 @@ export default function Dashboard() {
                        <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-8 py-6 lg:py-0 border-y lg:border-y-0 lg:border-x border-border/20 px-0 lg:px-10">
                            <div className="space-y-1">
                               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Scans</p>
-                              <p className="text-3xl font-black italic">1,248</p>
+                              <p className="text-3xl font-black italic">{qr.scan_count || 0}</p>
                            </div>
                            <div className="space-y-1">
                               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Short Link</p>
@@ -276,7 +284,10 @@ export default function Dashboard() {
                            </div>
                            <div className="hidden md:block space-y-1 text-right lg:text-left">
                               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Last Scanned</p>
-                              <p className="text-sm font-bold text-muted-foreground">2 hours ago</p>
+                              <p className="text-sm font-bold text-muted-foreground flex items-center gap-1.5 lg:justify-start justify-end">
+                                 <History className="w-3.5 h-3.5" />
+                                 {qr.last_scanned ? formatRelativeTime(qr.last_scanned) : 'Never scanned'}
+                              </p>
                            </div>
                        </div>
 

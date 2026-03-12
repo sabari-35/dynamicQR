@@ -47,8 +47,41 @@ def get_qr_codes(
     supabase: Client = Depends(get_supabase_client)
 ):
     try:
-        res = supabase.table("qr_codes").select("*").eq("user_id", current_user.id).execute()
-        return res.data
+        # Fetch QR codes
+        qr_res = supabase.table("qr_codes").select("*").eq("user_id", str(current_user.id)).order("created_at", desc=True).execute()
+        qrs = qr_res.data
+        
+        if not qrs:
+            return []
+
+        qr_ids = [qr['id'] for qr in qrs]
+        
+        # Fetch scan counts and last scanned timestamps
+        # We can't easily do GROUP BY in PostgREST via the client
+        # So we fetch all scan logs for these QRs (or just the head if many)
+        # But for dashboard, we just need the counts.
+        # Alternatively, let's fetch counts per QR if the list is small, 
+        # but let's be more efficient:
+        scans_res = supabase.table("scan_logs").select("qr_id, scanned_at").in_("qr_id", qr_ids).execute()
+        scans_data = scans_res.data
+        
+        # Aggregate in Python
+        stats = {}
+        for scan in scans_data:
+            qid = scan['qr_id']
+            if qid not in stats:
+                stats[qid] = {"count": 0, "last": None}
+            stats[qid]["count"] += 1
+            if not stats[qid]["last"] or scan['scanned_at'] > stats[qid]["last"]:
+                stats[qid]["last"] = scan['scanned_at']
+
+        # Merge stats into QR data
+        for qr in qrs:
+            qr_stats = stats.get(qr['id'], {"count": 0, "last": None})
+            qr["scan_count"] = qr_stats["count"]
+            qr["last_scanned"] = qr_stats["last"]
+
+        return qrs
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
