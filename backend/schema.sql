@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS public.qr_codes (
     short_id TEXT UNIQUE NOT NULL,
     destination_url TEXT NOT NULL,
     is_dynamic BOOLEAN DEFAULT TRUE,
+    qr_type TEXT DEFAULT 'website',
+    status TEXT DEFAULT 'active',
     qr_design_settings JSONB DEFAULT '{}'::jsonb,
     expires_at TIMESTAMP WITH TIME ZONE,
     scan_limit INTEGER,

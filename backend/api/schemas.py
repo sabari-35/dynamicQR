@@ -34,6 +34,8 @@ class CampaignResponse(CampaignBase):
 class QRCodeBase(BaseModel):
     name: str
     destination_url: HttpUrl
+    qr_type: str = "website"
+    status: str = "active"
     is_dynamic: bool = True
     qr_design_settings: Dict[str, Any] = {}
     folder_id: Optional[uuid.UUID] = None
@@ -49,6 +51,8 @@ class QRCodeCreate(QRCodeBase):
 class QRCodeUpdate(BaseModel):
     name: Optional[str] = None
     destination_url: Optional[HttpUrl] = None
+    qr_type: Optional[str] = None
+    status: Optional[str] = None
     qr_design_settings: Optional[Dict[str, Any]] = None
     folder_id: Optional[uuid.UUID] = None
     campaign_id: Optional[uuid.UUID] = None

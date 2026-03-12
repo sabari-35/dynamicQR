@@ -1,27 +1,23 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Button } from '@/components/ui/button'
 import { 
   MoreHorizontal, 
   Plus, 
   BarChart3, 
   Pencil, 
-  Download, 
   Zap, 
   Activity, 
   Layers,
-  ArrowUpRight,
   Search,
-  Settings2,
-  LayoutDashboard
+  LayoutDashboard,
+  Pause,
+  Play,
+  Trash2,
+  Clock,
+  ExternalLink,
+  ChevronRight,
+  Filter
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import {
@@ -32,6 +28,8 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { toast } from 'sonner'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
 import gsap from "gsap"
@@ -44,27 +42,43 @@ export default function Dashboard() {
   const [qrs, setQrs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [activeFilter, setActiveFilter] = useState('all') // all, active, paused
   
   const containerRef = useRef<HTMLDivElement>(null)
 
   useGSAP(() => {
     if (!loading) {
       const tl = gsap.timeline()
-      tl.from(".stat-card", {
-        y: 40,
+      
+      tl.from(".header-section > *", {
+        y: 30,
         opacity: 0,
         duration: 0.8,
         stagger: 0.1,
         ease: "power3.out"
       })
-      .from(".table-section", {
-        y: 60,
+      .from(".stat-card", {
+        y: 40,
         opacity: 0,
-        duration: 1,
-        ease: "power4.out"
+        duration: 0.8,
+        stagger: 0.1,
+        ease: "power3.out"
       }, "-=0.4")
+      .from(".filter-section", {
+        x: -20,
+        opacity: 0,
+        duration: 0.6,
+        ease: "power2.out"
+      }, "-=0.2")
+      .from(".qr-card", {
+        y: 40,
+        opacity: 0,
+        duration: 0.8,
+        stagger: 0.05,
+        ease: "power3.out"
+      }, "-=0.2")
     }
-  }, [loading])
+  }, [loading, activeFilter])
 
   useEffect(() => {
     fetchData()
@@ -72,15 +86,38 @@ export default function Dashboard() {
 
   const fetchData = async () => {
     try {
-      const statsRes = await api.get('/analytics/dashboard')
+      const [statsRes, qrsRes] = await Promise.all([
+        api.get('/analytics/dashboard'),
+        api.get('/qr/')
+      ])
       setStats(statsRes.data)
-
-      const qrsRes = await api.get('/qr/')
       setQrs(qrsRes.data)
     } catch (error) {
       console.error(error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleToggleStatus = async (qr: any) => {
+    try {
+      const newStatus = qr.status === 'active' ? 'paused' : 'active'
+      await api.put(`/qr/${qr.id}`, { status: newStatus })
+      setQrs(qrs.map(item => item.id === qr.id ? { ...item, status: newStatus } : item))
+      toast.success(`QR Code ${newStatus === 'active' ? 'resumed' : 'paused'} successfully`)
+    } catch (error) {
+      toast.error('Failed to update status')
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this QR code?')) return
+    try {
+      await api.delete(`/qr/${id}`)
+      setQrs(qrs.filter(item => item.id !== id))
+      toast.success('QR Code deleted')
+    } catch (error) {
+      toast.error('Failed to delete')
     }
   }
 
@@ -101,181 +138,199 @@ export default function Dashboard() {
         
         const downloadLink = document.createElement("a");
         downloadLink.download = `${name}-dynamic-qr.png`;
-        downloadLink.href = `${pngFile}`;
+        downloadLink.href = pngFile;
         downloadLink.click();
     };
     
     img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
   }
 
-  const filteredQrs = qrs.filter(qr => 
-    qr.name.toLowerCase().includes(search.toLowerCase()) || 
-    qr.destination_url.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredQrs = qrs.filter(qr => {
+    const matchesSearch = qr.name.toLowerCase().includes(search.toLowerCase()) || 
+                         qr.destination_url.toLowerCase().includes(search.toLowerCase())
+    const matchesFilter = activeFilter === 'all' || qr.status === activeFilter
+    return matchesSearch && matchesFilter
+  })
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="w-full bg-mesh min-h-screen" ref={containerRef}>
+    <div className="w-full bg-mesh min-h-screen pb-20" ref={containerRef}>
       <div className="container mx-auto p-4 md:p-8 space-y-12 max-w-7xl">
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2">
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight font-heading">Dashboard</h1>
-            <p className="text-muted-foreground text-lg">Manage your dynamic ecosystem at a glance.</p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 pt-10 header-section">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider">
+               <Zap className="w-3.5 h-3.5" />
+               Enterprise Dashboard
+            </div>
+            <h1 className="text-5xl md:text-7xl font-black tracking-tighter font-heading italic">MANAGE</h1>
+            <p className="text-muted-foreground text-xl max-w-xl">Supercharge your dynamic redirects with advanced management controls.</p>
           </div>
           <Link to="/create">
-            <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground h-14 px-8 rounded-2xl shadow-2xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-              <Plus className="w-5 h-5 mr-2" />
-              Create New QR
+            <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground h-20 px-10 rounded-[2rem] shadow-2xl shadow-primary/30 transition-all hover:scale-105 active:scale-95 text-xl font-bold">
+              <Plus className="w-6 h-6 mr-3" />
+              CREATE QR
             </Button>
           </Link>
         </div>
         
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <StatCard 
-            label="Total Scans" 
-            value={stats.total_scans} 
-            icon={<Activity className="w-6 h-6" />}
-            trend="+12% from last week"
-            className="stat-card"
-          />
-          <StatCard 
-            label="Active QR Codes" 
-            value={stats.total_qrs} 
-            icon={<Zap className="w-6 h-6" />}
-            trend="Live and active"
-            className="stat-card"
-          />
-          <StatCard 
-            label="Managed Campaigns" 
-            value={stats.active_campaigns} 
-            icon={<Layers className="w-6 h-6" />}
-            trend="Across all folders"
-            className="stat-card"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatCard label="Total Reach" value={stats.total_scans} icon={<Activity />} trend="Scans globally" className="stat-card" />
+          <StatCard label="Active Nodes" value={stats.total_qrs} icon={<Zap />} trend="Live connections" className="stat-card" />
+          <StatCard label="Campaigns" value={stats.active_campaigns} icon={<Layers />} trend="Strategic folders" className="stat-card" />
         </div>
 
-        {/* Assets Section */}
-        <div className="table-section space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-             <h2 className="text-2xl font-bold flex items-center gap-2 font-heading">
-               Your QR Assets 
-               <span className="text-xs bg-muted px-2 py-1 rounded-full text-muted-foreground">{qrs.length} items</span>
-             </h2>
-             <div className="flex items-center gap-3 w-full md:w-auto">
-                <div className="relative flex-1 md:w-72">
-                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {/* Management Controls */}
+        <div className="space-y-8 filter-section">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+             <div className="flex items-center gap-4">
+                <div className="glass-card flex p-1.5 rounded-2xl">
+                   {['all', 'active', 'paused'].map((f) => (
+                      <button
+                        key={f}
+                        onClick={() => setActiveFilter(f)}
+                        className={cn(
+                          "px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest transition-all",
+                          activeFilter === f ? "bg-primary text-primary-foreground shadow-lg" : "hover:bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {f}
+                      </button>
+                   ))}
+                </div>
+             </div>
+             <div className="flex items-center gap-4 flex-1 lg:max-w-md">
+                <div className="relative flex-1">
+                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                    <Input 
-                      placeholder="Search QR codes..." 
-                      className="pl-10 h-11 glass-card border-none bg-background/40"
+                      placeholder="Search your ecosystem..." 
+                      className="pl-12 h-14 glass-card border-none bg-background/40 rounded-2xl text-lg font-medium"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                    />
                 </div>
-                <Button variant="outline" size="icon" className="h-11 w-11 glass-card">
-                   <Settings2 className="w-4 h-4" />
+                <Button variant="outline" size="icon" className="h-14 w-14 glass-card border-none rounded-2xl">
+                   <Filter className="w-5 h-5" />
                 </Button>
              </div>
           </div>
 
-          <div className="glass-card overflow-hidden">
+          <div className="grid grid-cols-1 gap-4">
             {filteredQrs.length === 0 ? (
-                <div className="text-center py-20">
-                  <div className="inline-flex items-center justify-center w-20 h-20 bg-muted rounded-full mb-6">
-                     <LayoutDashboard className="w-8 h-8 text-muted-foreground/50" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-2">No QR codes found</h3>
-                  <p className="text-muted-foreground mb-8">Ready to create your first dynamic shortcut?</p>
+                <div className="glass-card py-32 text-center rounded-[3rem]">
+                  <LayoutDashboard className="w-20 h-20 text-muted-foreground/20 mx-auto mb-6" />
+                  <h3 className="text-2xl font-black mb-2 uppercase tracking-tighter">No Assets Detected</h3>
+                  <p className="text-muted-foreground text-lg mb-8">Deploy your first dynamic shortcut to begin tracking.</p>
                   <Link to="/create">
-                    <Button variant="outline">Create Now</Button>
+                    <Button variant="outline" className="h-12 px-8 rounded-xl font-bold">START GENERATING</Button>
                   </Link>
                 </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border/50 hover:bg-transparent">
-                      <TableHead className="py-5 font-bold uppercase tracking-wider text-[11px] text-muted-foreground">Asset Name</TableHead>
-                      <TableHead className="py-5 font-bold uppercase tracking-wider text-[11px] text-muted-foreground">Destination</TableHead>
-                      <TableHead className="py-5 font-bold uppercase tracking-wider text-[11px] text-muted-foreground">Short Link</TableHead>
-                      <TableHead className="py-5 font-bold uppercase tracking-wider text-[11px] text-muted-foreground">Age</TableHead>
-                      <TableHead className="py-5 font-bold uppercase tracking-wider text-[11px] text-muted-foreground text-right">Settings</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredQrs.map((qr) => (
-                      <TableRow key={qr.id} className="border-border/20 group hover:bg-muted/30 transition-colors">
-                        <TableCell>
-                           <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-white p-1 rounded-lg shadow-sm group-hover:scale-110 transition-transform">
-                                 <QRCodeSVG size={32} value={`${SHORT_LINK_DOMAIN}/${qr.short_id}`} />
-                              </div>
-                              <span className="font-semibold text-base">{qr.name}</span>
+              filteredQrs.map((qr) => (
+                <div key={qr.id} className="qr-card group glass-card p-6 md:p-8 rounded-[2.5rem] border-none shadow-xl hover:shadow-2xl transition-all duration-500 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-100 transition-opacity">
+                       <Zap className="w-32 h-32 -mr-10 -mt-10 text-primary" />
+                    </div>
+                    
+                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-8">
+                       {/* QR Preview Section */}
+                       <div className="flex-shrink-0 flex items-center gap-6">
+                           <div className="w-28 h-28 bg-white p-2 rounded-3xl shadow-2xl transition-transform group-hover:scale-110">
+                              <QRCodeSVG size={96} value={`${SHORT_LINK_DOMAIN}/${qr.short_id}`} />
                            </div>
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate py-6">
-                           <span className="text-muted-foreground group-hover:text-foreground transition-colors">{qr.destination_url}</span>
-                        </TableCell>
-                        <TableCell>
-                            <a 
-                              href={`${SHORT_LINK_DOMAIN}/${qr.short_id}`} 
-                              target="_blank" 
-                              rel="noreferrer" 
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/10 text-accent font-medium text-sm hover:bg-accent/20 transition-all border border-accent/20"
-                            >
-                                /r/{qr.short_id} <ArrowUpRight className="w-3.5 h-3.5" />
-                            </a>
-                            <div className="hidden">
+                           <div className="space-y-2">
+                              <div className="flex items-center gap-3">
+                                 <Badge variant={qr.status === 'active' ? 'default' : 'secondary'} className="rounded-lg h-7 px-3 uppercase text-[10px] font-black tracking-widest">
+                                    {qr.status || 'active'}
+                                 </Badge>
+                                 <span className="text-xs text-muted-foreground font-bold flex items-center gap-1.5">
+                                    <Clock className="w-3 h-3" />
+                                    {new Date(qr.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                 </span>
+                              </div>
+                              <h3 className="text-2xl font-black tracking-tight">{qr.name}</h3>
+                              <div className="flex items-center gap-2 text-primary font-bold text-sm">
+                                 <ExternalLink className="w-4 h-4" />
+                                 <span className="max-w-[200px] truncate">{qr.destination_url}</span>
+                              </div>
+                           </div>
+                       </div>
+
+                       {/* Stats Section */}
+                       <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-8 py-6 lg:py-0 border-y lg:border-y-0 lg:border-x border-border/20 px-0 lg:px-10">
+                           <div className="space-y-1">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Scans</p>
+                              <p className="text-3xl font-black italic">1,248</p>
+                           </div>
+                           <div className="space-y-1">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Short Link</p>
+                              <p className="text-lg font-bold font-mono text-accent">/r/{qr.short_id}</p>
+                           </div>
+                           <div className="hidden md:block space-y-1 text-right lg:text-left">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Last Scanned</p>
+                              <p className="text-sm font-bold text-muted-foreground">2 hours ago</p>
+                           </div>
+                       </div>
+
+                       {/* Actions Section */}
+                       <div className="flex-shrink-0 flex items-center gap-3">
+                           <Button 
+                              variant="outline" 
+                              onClick={() => handleToggleStatus(qr)}
+                              className="h-14 w-14 rounded-2xl border-none glass-card hover:bg-primary/10 hover:text-primary transition-all"
+                           >
+                              {qr.status === 'paused' ? <Play className="w-5 h-5 fill-current" /> : <Pause className="w-5 h-5 fill-current" />}
+                           </Button>
+                           <Button 
+                              variant="outline"
+                              onClick={() => handleDownload(qr.short_id, qr.name)}
+                              className="h-14 px-6 rounded-2xl border-none glass-card hover:bg-primary/10 hover:text-primary transition-all font-bold gap-2"
+                           >
+                              DOWNLOAD
+                           </Button>
+                           <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                 <Button variant="outline" size="icon" className="h-14 w-14 rounded-2xl border-none glass-card">
+                                    <MoreHorizontal className="w-5 h-5" />
+                                 </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="glass-card w-56 p-2 mt-4 rounded-2xl border-none shadow-2xl">
+                                 <DropdownMenuItem asChild>
+                                    <Link to={`/edit/${qr.id}`} className="p-3 rounded-xl font-bold flex items-center gap-3 cursor-pointer">
+                                       <Pencil className="w-4 h-4" /> Edit Content
+                                    </Link>
+                                 </DropdownMenuItem>
+                                 <DropdownMenuItem asChild>
+                                    <Link to={`/analytics/${qr.id}`} className="p-3 rounded-xl font-bold flex items-center gap-3 cursor-pointer">
+                                       <BarChart3 className="w-4 h-4" /> Insights
+                                    </Link>
+                                 </DropdownMenuItem>
+                                 <DropdownMenuSeparator className="bg-border/20" />
+                                 <DropdownMenuItem onClick={() => handleDelete(qr.id)} className="p-3 rounded-xl font-bold flex items-center gap-3 cursor-pointer text-destructive focus:bg-destructive/10">
+                                    <Trash2 className="w-4 h-4" /> Delete Asset
+                                 </DropdownMenuItem>
+                              </DropdownMenuContent>
+                           </DropdownMenu>
+                           <div className="hidden">
                                <QRCodeSVG 
                                    id={`qr-${qr.short_id}`}
                                    value={`${SHORT_LINK_DOMAIN}/${qr.short_id}`} 
                                    size={1024} 
                                    level="H" 
-                                   includeMargin={true} 
                                />
-                            </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground font-medium">
-                           {new Date(qr.created_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-10 w-10 p-0 hover:bg-muted/80 rounded-xl">
-                                <MoreHorizontal className="h-5 w-5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="glass-card w-56 p-2 mt-2">
-                              <DropdownMenuItem onClick={() => handleDownload(qr.short_id, qr.name)} className="cursor-pointer font-medium p-3 rounded-xl flex items-center transition-all bg-primary/5 hover:bg-primary/20 text-primary mb-1">
-                                  <Download className="w-4 h-4 mr-2" /> Download High-Res
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator className="bg-border/20" />
-                              <DropdownMenuItem asChild>
-                                 <Link to={`/edit/${qr.id}`} className="cursor-pointer font-medium p-3 rounded-xl flex items-center hover:bg-muted transition-all">
-                                    <Pencil className="w-4 h-4 mr-2" /> Edit Destination
-                                 </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                 <Link to={`/analytics/${qr.id}`} className="cursor-pointer font-medium p-3 rounded-xl flex items-center hover:bg-muted transition-all">
-                                    <BarChart3 className="w-4 h-4 mr-2" /> View Insights
-                                 </Link>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                           </div>
+                       </div>
+                    </div>
+                </div>
+              ))
             )}
           </div>
         </div>
@@ -286,27 +341,25 @@ export default function Dashboard() {
 
 function StatCard({ label, value, icon, trend, className }: { label: string, value: number, icon: React.ReactNode, trend: string, className?: string }) {
   return (
-    <div className={cn("glass-card p-8 group hover:border-primary/50 transition-all duration-500 overflow-hidden relative", className)}>
+    <div className={cn("glass-card p-8 rounded-[2.5rem] border-none shadow-xl hover:shadow-2xl transition-all group overflow-hidden relative", className)}>
        <div className="relative z-10 flex items-start justify-between">
-          <div className="space-y-4">
-             <div className="flex items-center gap-2 text-muted-foreground group-hover:text-primary transition-colors">
-                <span className="p-2 bg-muted rounded-xl group-hover:bg-primary/10 transition-colors">
+          <div className="space-y-6">
+             <div className="flex items-center gap-3 text-muted-foreground font-black uppercase tracking-widest text-[10px]">
+                <span className="p-2.5 bg-primary/10 text-primary rounded-xl group-hover:scale-110 transition-transform">
                    {icon}
                 </span>
-                <span className="text-sm font-bold uppercase tracking-wider">{label}</span>
+                {label}
              </div>
              <div className="space-y-1">
-                <div className="text-5xl font-black tracking-tight">{value}</div>
-                <div className="text-sm text-green-500 font-medium flex items-center gap-1">
-                   <ArrowUpRight className="w-3 h-3" />
+                <div className="text-6xl font-black italic tracking-tighter group-hover:text-primary transition-colors">{value.toLocaleString()}</div>
+                <div className="text-xs text-muted-foreground font-bold flex items-center gap-1.5 uppercase tracking-widest">
                    {trend}
+                   <ChevronRight className="w-3 h-3 text-primary" />
                 </div>
              </div>
           </div>
        </div>
-       
-       {/* Background Decoration */}
-       <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[40px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700" />
+       <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000" />
     </div>
   )
 }

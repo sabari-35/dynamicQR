@@ -60,6 +60,10 @@ async def redirect_qr(
             
         qr_code = res.data[0]
         
+        # Check Status (Pause/Resume)
+        if qr_code.get("status") == "paused":
+            return "This QR code is currently paused by the owner."
+            
         # Check Expiration
         if qr_code.get("expires_at"):
             expires_at = datetime.fromisoformat(qr_code["expires_at"].replace("Z", "+00:00"))

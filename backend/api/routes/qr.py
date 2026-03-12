@@ -29,7 +29,9 @@ def create_qr_code(
         qr_data["expires_at"] = qr_data["expires_at"].isoformat()
 
     qr_data["short_id"] = short_id
-    qr_data["user_id"] = current_user.id
+    qr_data["user_id"] = str(current_user.id)
+    qr_data["status"] = qr_data.get("status", "active")
+    qr_data["qr_type"] = qr_data.get("qr_type", "website")
 
     try:
         res = supabase.table("qr_codes").insert(qr_data).execute()
