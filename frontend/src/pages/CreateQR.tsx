@@ -77,7 +77,10 @@ export default function CreateQR() {
       toast.success('Dynamic QR Code created successfully!')
       navigate('/dashboard')
     } catch (error: any) {
-      toast.error('Failed to create QR code')
+      const detail = error.response?.data?.detail
+      if (typeof detail === 'string') toast.error(`Backend Error: ${detail}`)
+      else if (Array.isArray(detail)) toast.error(`Validation: ${detail[0]?.msg}`)
+      else toast.error(error.message || 'Failed to create QR code')
     } finally {
       setLoading(false)
     }
