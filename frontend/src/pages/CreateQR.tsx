@@ -20,6 +20,7 @@ import gsap from "gsap"
 import { useGSAP } from "@gsap/react"
 import { TypeSelector } from '@/components/TypeSelector'
 import { AdvancedStyling } from '@/components/AdvancedStyling'
+import { FileUpload } from '@/components/FileUpload'
 
 export default function CreateQR() {
   const navigate = useNavigate()
@@ -170,16 +171,26 @@ export default function CreateQR() {
                       />
                     </div>
                     <div className="space-y-3">
-                      <Label htmlFor="destination_url" className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Target URL *</Label>
-                      <Input 
-                          id="destination_url" 
-                          name="destination_url"
-                          placeholder="https://your-brand.com/landing" 
-                          type="url"
-                          value={formData.destination_url}
-                          onChange={handleChange}
-                          className="h-14 bg-background/40 border-border/30 rounded-2xl px-6 text-lg font-medium"
-                      />
+                      <Label htmlFor="destination_url" className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                        {['pdf', 'video', 'images', 'mp3'].includes(selectedType) ? 'Upload Media File *' : 'Target URL *'}
+                      </Label>
+                      {['pdf', 'video', 'images', 'mp3'].includes(selectedType) ? (
+                         <FileUpload 
+                            onUploadComplete={(url) => setFormData(prev => ({ ...prev, destination_url: url }))}
+                            accept={selectedType === 'pdf' ? '.pdf' : selectedType === 'video' ? 'video/*' : selectedType === 'images' ? 'image/*' : selectedType === 'mp3' ? 'audio/mpeg' : '*/*'}
+                            label={`Upload ${selectedType.toUpperCase()}`}
+                         />
+                      ) : (
+                         <Input 
+                             id="destination_url" 
+                             name="destination_url"
+                             placeholder="https://your-brand.com/landing" 
+                             type="url"
+                             value={formData.destination_url}
+                             onChange={handleChange}
+                             className="h-14 bg-background/40 border-border/30 rounded-2xl px-6 text-lg font-medium"
+                         />
+                      )}
                       <div className="flex items-center gap-2 px-2 text-xs text-green-500 font-bold">
                          <ShieldCheck className="w-3.5 h-3.5" />
                          SSL Verified Premium Redirection
