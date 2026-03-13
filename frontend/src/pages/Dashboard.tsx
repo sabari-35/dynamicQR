@@ -62,35 +62,55 @@ export default function Dashboard() {
   }
 
   useGSAP(() => {
-    if (!loading && (qrs.length > 0)) {
-      const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.8 }})
-      
-      tl.from(".header-section > *", {
-        y: 30,
+    // Initial Layout Animation - Runs once
+    const tl = gsap.timeline({ defaults: { ease: "power3.out", duration: 0.4 }})
+    
+    tl.from(".header-section > *", {
+      y: 20,
+      opacity: 0,
+      stagger: 0.05,
+    })
+    .from(".stat-card", {
+      y: 20,
+      opacity: 0,
+      stagger: 0.05,
+    }, "-=0.2")
+    .from(".filter-section", {
+      y: 10,
+      opacity: 0,
+      duration: 0.4,
+    }, "-=0.1")
+  }, { scope: containerRef })
+
+  useGSAP(() => {
+    // QR List Animation - Runs when qrs or filter changes
+    if (!loading) {
+      gsap.from(".qr-card", {
+        y: 20,
         opacity: 0,
-        stagger: 0.1,
+        stagger: 0.03,
+        duration: 0.3,
+        ease: "power2.out",
+        clearProps: "all"
       })
-      .from(".stat-card", {
-        y: 40,
-        opacity: 0,
-        stagger: 0.1,
-      }, "-=0.4")
-      .from(".filter-section", {
-        x: -20,
-        opacity: 0,
-        duration: 0.6,
-      }, "-=0.2")
-      .from(".qr-card", {
-        y: 40,
-        opacity: 0,
-        stagger: 0.05,
-      }, "-=0.2")
     }
-  }, [loading, activeFilter, qrs.length])
+  }, { scope: containerRef, dependencies: [loading, activeFilter, filteredQrs.length] })
 
   useEffect(() => {
     fetchData()
   }, [])
+
+  const filteredQrs = qrs.filter(qr => {
+    const name = qr.name || ''
+    const dest = qr.destination_url || ''
+    const matchesSearch = name.toLowerCase().includes(search.toLowerCase()) || 
+                         dest.toLowerCase().includes(search.toLowerCase())
+    
+    const qrStatus = (qr.status || 'active').toLowerCase()
+    const matchesFilter = activeFilter === 'all' || qrStatus === activeFilter.toLowerCase()
+    
+    return matchesSearch && matchesFilter
+  })
 
   const fetchData = async () => {
     try {
@@ -152,13 +172,6 @@ export default function Dashboard() {
     
     img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
   }
-
-  const filteredQrs = qrs.filter(qr => {
-    const matchesSearch = qr.name.toLowerCase().includes(search.toLowerCase()) || 
-                         qr.destination_url.toLowerCase().includes(search.toLowerCase())
-    const matchesFilter = activeFilter === 'all' || qr.status === activeFilter
-    return matchesSearch && matchesFilter
-  })
 
   if (loading) {
     return (

@@ -30,7 +30,7 @@ def create_qr_code(
 
     qr_data["short_id"] = short_id
     qr_data["user_id"] = str(current_user.id)
-    qr_data["status"] = qr_data.get("status", "active")
+    qr_data["status"] = qr_data.get("status", "active").lower()
     qr_data["qr_type"] = qr_data.get("qr_type", "website")
 
     try:
@@ -115,6 +115,9 @@ def update_qr_code(
         update_data["campaign_id"] = str(update_data["campaign_id"])
     if "expires_at" in update_data and update_data["expires_at"]:
          update_data["expires_at"] = update_data["expires_at"].isoformat()
+
+    if "status" in update_data:
+        update_data["status"] = update_data["status"].lower()
 
     try:
         res = supabase.table("qr_codes").update(update_data).eq("id", id).eq("user_id", current_user.id).execute()
